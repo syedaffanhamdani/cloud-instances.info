@@ -1,14 +1,14 @@
 # To use this script you must have the following environment variables set:
 #   AWS_ACCESS_KEY_ID
 #   AWS_SECRET_ACCESS_KEY
-# as explained in: http://boto.s3.amazonaws.com/s3_tut.html
+# as explained in AWS documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
 
 import os
 import traceback
+import mimetypes
+from pathlib import Path
 
-from boto import connect_s3
-from boto.s3.connection import OrdinaryCallingFormat
-from boto.s3.key import Key
+import boto3
 from invoke import task
 from invocations.console import confirm
 from six.moves import SimpleHTTPServer, socketserver
@@ -27,10 +27,6 @@ import gzip
 import shutil
 
 BUCKET_NAME = "www.ec2instances.info"
-
-# Work around https://github.com/boto/boto/issues/2836 by explicitly setting
-# the calling_format.
-BUCKET_CALLING_FORMAT = OrdinaryCallingFormat()
 
 abspath = lambda filename: os.path.join(
     os.path.abspath(os.path.dirname(__file__)), filename
@@ -73,6 +69,7 @@ def scrape_rds(c):
         print(traceback.print_exc())
 
 
+@task
 def scrape_cache(c):
     """Scrape Cache instance data from AWS and save to local file"""
     cache_file = "www/cache/instances.json"
@@ -83,6 +80,7 @@ def scrape_cache(c):
         print(traceback.print_exc())
 
 
+@task
 def scrape_redshift(c):
     """Scrape Redshift instance data from AWS and save to local file"""
     redshift_file = "www/redshift/instances.json"
@@ -93,6 +91,7 @@ def scrape_redshift(c):
         print(traceback.print_exc())
 
 
+@task
 def scrape_opensearch(c):
     """Scrape OpenSearch instance data from AWS and save to local file"""
     opensearch_file = "www/opensearch/instances.json"
@@ -161,51 +160,94 @@ def render_html(c):
 @task
 def bucket_create(c):
     """Creates the S3 bucket used to host the site"""
-    conn = connect_s3(calling_format=BUCKET_CALLING_FORMAT)
-    bucket = conn.create_bucket(BUCKET_NAME, policy="public-read")
-    bucket.configure_website("index.html", "error.html")
-    print("Bucket %r created." % BUCKET_NAME)
+    s3 = boto3.client("s3")
+
+    # Create bucket with public read access
+    s3.create_bucket(Bucket=BUCKET_NAME, ACL="public-read")
+
+    # Configure website hosting
+    s3.put_bucket_website(
+        Bucket=BUCKET_NAME,
+        WebsiteConfiguration={
+            "IndexDocument": {"Suffix": "index.html"},
+            "ErrorDocument": {"Key": "error.html"},
+        },
+    )
+
+    print(f"Bucket {BUCKET_NAME!r} created.")
 
 
 @task
 def bucket_delete(c):
     """Deletes the S3 bucket used to host the site"""
-    if not confirm("Are you sure you want to delete the bucket %r?" % BUCKET_NAME):
+    if not confirm(f"Are you sure you want to delete the bucket {BUCKET_NAME!r}?"):
         print("Aborting at user request.")
         exit(1)
-    conn = connect_s3(calling_format=BUCKET_CALLING_FORMAT)
-    conn.delete_bucket(BUCKET_NAME)
-    print("Bucket %r deleted." % BUCKET_NAME)
+
+    s3 = boto3.resource("s3")
+    bucket = s3.Bucket(BUCKET_NAME)
+
+    # Delete all objects in the bucket first
+    bucket.objects.all().delete()
+
+    # Then delete the bucket
+    bucket.delete()
+
+    print(f"Bucket {BUCKET_NAME!r} deleted.")
+
 
 @task
 def deploy(c, root_dir="www"):
     """Deploy current content"""
-    conn = connect_s3(calling_format=BUCKET_CALLING_FORMAT)
-    bucket = conn.get_bucket(BUCKET_NAME)
+    s3 = boto3.client("s3")
 
     for root, dirs, files in os.walk(root_dir):
         for name in files:
             if name.startswith("."):
                 continue
+
             local_path = os.path.join(root, name)
             remote_path = local_path[len(root_dir) + 1 :]
-            print("%s -> %s/%s" % (local_path, BUCKET_NAME, remote_path))
-            k = Key(bucket)
-            k.key = remote_path
+            print(f"{local_path} -> {BUCKET_NAME}/{remote_path}")
 
+            extra_args = {"ACL": "public-read"}
+
+            # Handle HTML files - compress with gzip
             if name.endswith(".html"):
-                upload_file = BytesIO()
-                with gzip.GzipFile(fileobj=upload_file, mode="wb") as gz, open(
+                # Create in-memory compressed file
+                compressed_file = BytesIO()
+                with gzip.GzipFile(fileobj=compressed_file, mode="wb") as gz, open(
                     local_path, "rb"
                 ) as fp:
                     shutil.copyfileobj(fp, gz)
-                upload_file.seek(0)
-                k.set_metadata("Content-Type", "text/html")
-                k.set_metadata("Content-Encoding", "gzip")
-            else:
-                upload_file = open(local_path, "rb")
 
-            k.set_contents_from_file(upload_file, policy="public-read")
+                compressed_file.seek(0)
+
+                # Add content-type and encoding headers
+                extra_args.update(
+                    {"ContentType": "text/html", "ContentEncoding": "gzip"}
+                )
+
+                # Upload the compressed file
+                s3.upload_fileobj(
+                    Fileobj=compressed_file,
+                    Bucket=BUCKET_NAME,
+                    Key=remote_path,
+                    ExtraArgs=extra_args,
+                )
+            else:
+                # For non-HTML files, try to guess the content type
+                content_type = mimetypes.guess_type(local_path)[0]
+                if content_type:
+                    extra_args["ContentType"] = content_type
+
+                # Upload the file directly
+                s3.upload_file(
+                    Filename=local_path,
+                    Bucket=BUCKET_NAME,
+                    Key=remote_path,
+                    ExtraArgs=extra_args,
+                )
 
 
 @task(default=True)
