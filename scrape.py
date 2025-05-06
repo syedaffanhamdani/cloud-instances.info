@@ -660,8 +660,14 @@ def add_dedicated_info(instances):
         # On demand pricing, not all dedicated instances are available on demand
         url = "https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/dedicatedhost-ondemand.json"
         od_pricing = fetch_data(url)
+
+        # Create a mapping between human-readable regions and API region names
+        region_to_api_region = {}
         for region in od_pricing["regions"]:
             all_pricing[region] = {}
+            # Store this mapping for later use
+            region_to_api_region[region] = region
+
             for instance_description, dinst in od_pricing["regions"][region].items():
                 _price = {"ondemand": format_price(dinst["price"]), "reserved": {}}
                 all_pricing[region][dinst["Instance Type"]] = _price
@@ -708,9 +714,18 @@ def add_dedicated_info(instances):
                             format_price(price)
                         )
 
-        return all_pricing
+        return all_pricing, region_to_api_region
 
-    all_pricing = fetch_dedicated_prices()
+    all_pricing, region_to_api_region = fetch_dedicated_prices()
+
+    # Create a reverse mapping from human-readable region to API region name
+    human_to_api_region = {}
+    for api_region, region_data in all_pricing.items():
+        for desc_region, region_code in region_map.items():
+            canonical_region = ec2.canonicalize_location(desc_region, False)
+            if canonical_region and api_region in canonical_region:
+                human_to_api_region[desc_region] = api_region
+
     for inst in instances:
         if not inst.pricing:
             # Less than 10 instances are ONLY available with dedicated host pricing
@@ -720,8 +735,16 @@ def add_dedicated_info(instances):
             inst_type = inst.instance_type.split(".")[0]
             for k, r in region_map.items():
                 region = ec2.canonicalize_location(r, False)
-                if inst_type in all_pricing[region]:
-                    _price = all_pricing[region][inst_type]
+
+                # Look up the correct API region name
+                api_region = None
+                for ar in all_pricing.keys():
+                    if ar in region:
+                        api_region = ar
+                        break
+
+                if api_region and inst_type in all_pricing[api_region]:
+                    _price = all_pricing[api_region][inst_type]
                     inst.regions[k] = region
                     inst.pricing[k] = {}
                     inst.pricing[k]["dedicated"] = _price
@@ -731,16 +754,30 @@ def add_dedicated_info(instances):
                 # Dedicated hosts are not associated with any type of software like rhel or mswin
                 # Not all instances are available as dedicated hosts
                 try:
-                    _price = all_pricing[region_map[region]][
-                        inst.instance_type.split(".")[0]
-                    ]
-                    inst.pricing[region]["dedicated"] = _price
-                except KeyError:
+                    # Look up the API region name from the human-readable region
+                    api_region = None
+                    canonical_region = ec2.canonicalize_location(
+                        region_map.get(region, region), False
+                    )
+
+                    for ar in all_pricing.keys():
+                        if ar in canonical_region:
+                            api_region = ar
+                            break
+
+                    if (
+                        api_region
+                        and inst.instance_type.split(".")[0] in all_pricing[api_region]
+                    ):
+                        _price = all_pricing[api_region][
+                            inst.instance_type.split(".")[0]
+                        ]
+                        inst.pricing[region]["dedicated"] = _price
+                except (KeyError, TypeError) as e:
+                    # Either the region isn't in region_map or the instance type isn't available
+                    # in this region as a dedicated host
+                    # print(f"No dedicated host price for {inst.instance_type} in {region}: {e}")
                     pass
-                    # print(
-                    #     "No dedicated host price for %s in %s"
-                    #     % (inst.instance_type, region)
-                    # )
 
 
 def add_spot_interrupt_info(instances):
