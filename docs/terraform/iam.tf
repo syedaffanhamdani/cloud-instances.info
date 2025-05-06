@@ -19,10 +19,11 @@ resource "aws_iam_policy" "ec2_pricing" {
       {
         Effect = "Allow"
         Action = [
+          "ec2:DescribeInstanceTypeOfferings",
           "ec2:DescribeInstanceTypes",
           "ec2:DescribeRegions",
-          "pricing:*",
-          "elasticache:DescribeEngineDefaultParameters"
+          "elasticache:DescribeEngineDefaultParameters",
+          "pricing:GetProducts",
         ],
         Resource = "*"
       }
