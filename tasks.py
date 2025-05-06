@@ -196,8 +196,6 @@ def bucket_delete(c):
     print(f"Bucket {BUCKET_NAME!r} deleted.")
 
 
-
-
 @task
 def deploy(c, root_dir="www"):
     """Deploy current content"""
