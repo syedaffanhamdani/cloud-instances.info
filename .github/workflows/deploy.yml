@@ -48,7 +48,6 @@ jobs:
           r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
           source-dir: ./src/www/ # Directory containing built assets
-          destination-dir: '/' # Upload to bucket root
 
       # Commented out since apparently the Azure port hasn't been open sourced by Vantage (yet).
 
