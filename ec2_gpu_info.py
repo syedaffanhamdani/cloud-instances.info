@@ -450,6 +450,84 @@ def add_gpu_info(instances):
             "cuda_cores": 18432,
             "gpu_memory": 640,
         },
+        # New entries for the missing instance types
+        "g6e.xlarge": {
+            "gpu_model": "NVIDIA L40S Tensor Core",
+            "compute_capability": 8.9,
+            "gpu_count": 1,
+            "cuda_cores": 18176,  # Based on L40S specs
+            "gpu_memory": 48,
+        },
+        "g6e.2xlarge": {
+            "gpu_model": "NVIDIA L40S Tensor Core",
+            "compute_capability": 8.9,
+            "gpu_count": 1,
+            "cuda_cores": 18176,
+            "gpu_memory": 48,
+        },
+        "g6e.4xlarge": {
+            "gpu_model": "NVIDIA L40S Tensor Core",
+            "compute_capability": 8.9,
+            "gpu_count": 1,
+            "cuda_cores": 18176,
+            "gpu_memory": 48,
+        },
+        "g6e.8xlarge": {
+            "gpu_model": "NVIDIA L40S Tensor Core",
+            "compute_capability": 8.9,
+            "gpu_count": 1,
+            "cuda_cores": 18176,
+            "gpu_memory": 48,
+        },
+        "g6e.12xlarge": {
+            "gpu_model": "NVIDIA L40S Tensor Core",
+            "compute_capability": 8.9,
+            "gpu_count": 4,
+            "cuda_cores": 72704,
+            "gpu_memory": 192,
+        },
+        "g6e.16xlarge": {
+            "gpu_model": "NVIDIA L40S Tensor Core",
+            "compute_capability": 8.9,
+            "gpu_count": 1,
+            "cuda_cores": 18176,
+            "gpu_memory": 48,
+        },
+        "g6e.24xlarge": {
+            "gpu_model": "NVIDIA L40S Tensor Core",
+            "compute_capability": 8.9,
+            "gpu_count": 4,
+            "cuda_cores": 72704,
+            "gpu_memory": 192,
+        },
+        "g6e.48xlarge": {
+            "gpu_model": "NVIDIA L40S Tensor Core",
+            "compute_capability": 8.9,
+            "gpu_count": 8,
+            "cuda_cores": 145408,
+            "gpu_memory": 384,
+        },
+        "p5e.48xlarge": {
+            "gpu_model": "NVIDIA H200 Tensor Core",
+            "compute_capability": 9.0,
+            "gpu_count": 8,
+            "cuda_cores": 18432,  # Same core count as H100
+            "gpu_memory": 1128,  # Total memory across 8 GPUs (141GB per GPU)
+        },
+        "p5en.48xlarge": {
+            "gpu_model": "NVIDIA H200 Tensor Core",
+            "compute_capability": 9.0,
+            "gpu_count": 8,
+            "cuda_cores": 18432,
+            "gpu_memory": 1128,
+        },
+        "trn2.48xlarge": {
+            "gpu_model": "AWS Trainium2",
+            "compute_capability": 0,  # Not NVIDIA CUDA
+            "gpu_count": 16,  # 16 Trainium2 chips
+            "cuda_cores": 0,  # Not applicable for AWS custom chips
+            "gpu_memory": 1536,  # 1.5TB high bandwidth memory
+        },
     }
     for inst in instances:
         if inst.GPU == 0:
