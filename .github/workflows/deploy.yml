@@ -25,18 +25,15 @@ jobs:
           python-version: '3.13'
 
       # Install dependencies for EC2 site
-      - name: Install EC2 dependencies
+      - name: Build
         working-directory: ./src
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-dev libxml2-dev libxslt1-dev libssl-dev
           python -m pip install --upgrade pip
+          python3 -m venv env
+          source env/bin/activate
           pip install -r requirements.txt
-
-      # Build the ec2instances.info site
-      - name: Build EC2 site
-        working-directory: ./src
-        run: |
           invoke build
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
