@@ -1,0 +1,87 @@
+name: Build and Deploy EC2 and Azure Instances to Cloudflare R2
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch: # Allows manual triggering
+  schedule:
+    - cron: '0 */6 * * *' # Run every 6 hours to ensure data is updated frequently
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: src
+
+      # Set up Python for building the sites
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # Install dependencies for EC2 site
+      - name: Install EC2 dependencies
+        working-directory: ./src
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-dev libxml2-dev libxslt1-dev libssl-dev
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Build the ec2instances.info site
+      - name: Build EC2 site
+        working-directory: ./src
+        run: |
+          invoke build
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Deploy EC2 site to R2
+      - name: Deploy EC2 site to R2
+        uses: ryand56/r2-upload-action@latest
+        with:
+          r2-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
+          source-dir: ./src/www # Directory containing built assets
+          destination-dir: '/' # Upload to bucket root
+
+      # Commented out since apparently the Azure port hasn't been open sourced by Vantage (yet).
+
+      #   # Build the Azure instances site
+      #   - name: Build Azure site
+      #     working-directory: ./src
+      #     run: |
+      #       invoke build
+      #     env:
+      #       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      #       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      #       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+      #   # Deploy Azure site to R2 if build was successful
+      #   - name: Deploy Azure site to R2
+      #     if: steps.check-azure-repo.outputs.azure_repo_exists == 'true'
+      #     uses: ryand56/r2-upload-action@latest
+      #     with:
+      #       r2-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      #       r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+      #       r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      #       r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
+      #       source-dir: ./src/azure/www # Update path if different
+      #       destination-dir: '/azure/' # Upload to azure subfolder
+
+      # Optional - Clear Cloudflare cache to ensure latest content is served
+      - name: Purge Cloudflare cache
+        if: success()
+        run: |
+          curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
