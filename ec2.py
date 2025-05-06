@@ -18,6 +18,31 @@ def canonicalize_location(location, from_pricing_api=True):
     return re.sub("^EU", "Europe", location)
 
 
+def create_boto3_client(service_name, region_name="us-east-1", max_retries=50):
+    """
+    Create a boto3 client with exponential backoff configuration.
+
+    Parameters:
+    - service_name: AWS service to connect to (e.g., 'ec2', 'pricing')
+    - region_name: AWS region (default: 'us-east-1')
+    - max_retries: Maximum number of retry attempts (default: 15)
+
+    Returns:
+    - Configured boto3 client
+    """
+    # Configure exponential backoff
+    config = botocore.config.Config(
+        retries={
+            "max_attempts": max_retries,
+            "mode": "adaptive",  # Adaptive mode for backoff with jitter
+        },
+        connect_timeout=10,  # Increase connection timeout
+        read_timeout=60,  # Increase read timeout
+    )
+
+    return boto3.client(service_name, region_name=region_name, config=config)
+
+
 # Translate between the API and what is used locally
 def translate_platform_name(operating_system, preinstalled_software):
     os = {
@@ -84,7 +109,7 @@ def get_region_descriptions():
 def get_instances():
     instance_types = {}
     try:
-        ec2_client = boto3.client("ec2", region_name="us-east-1")
+        ec2_client = create_boto3_client("ec2", region_name="us-east-1")
         ec2_pager = ec2_client.get_paginator("describe_instance_types")
         instance_type_iterator = ec2_pager.paginate()
         for result in instance_type_iterator:
@@ -97,7 +122,7 @@ def get_instances():
         raise e
 
     instances = {}
-    pricing_client = boto3.client("pricing", region_name="us-east-1")
+    pricing_client = create_boto3_client("pricing", region_name="us-east-1")
     product_pager = pricing_client.get_paginator("get_products")
 
     # Not all instances are in US-EAST-1 any longer.
@@ -154,7 +179,7 @@ def get_instances():
 
 def add_pricing(imap):
     descriptions = get_region_descriptions()
-    pricing_client = boto3.client("pricing", region_name="us-east-1")
+    pricing_client = create_boto3_client("pricing", region_name="us-east-1")
     product_pager = pricing_client.get_paginator("get_products")
 
     product_iterator = product_pager.paginate(
@@ -273,7 +298,7 @@ def add_spot_pricing(imap):
     for region in get_region_descriptions().values():
         try:
             # get all spot price data from a region
-            ec2_client = boto3.client("ec2", region_name=region)
+            ec2_client = create_boto3_client("ec2", region_name=region)
             prices_pager = ec2_client.get_paginator("describe_spot_price_history")
             prices_iterator = prices_pager.paginate(
                 InstanceTypes=instance_types, StartTime=datetime.now()
@@ -434,7 +459,7 @@ def parse_instance(instance_type, product_attributes, api_description):
 
 
 def describe_regions():
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client = create_boto3_client("ec2", region_name="us-east-1")
     response = ec2_client.describe_regions(AllRegions=True)
     for region in response["Regions"]:
         yield region["RegionName"]
@@ -445,7 +470,7 @@ def describe_instance_type_offerings(region_name="us-east-1", location_type="reg
     location_type = 'region' | 'availability-zone' | 'availability-zone-id'
     """
     try:
-        ec2_client = boto3.client("ec2", region_name=region_name)
+        ec2_client = create_boto3_client("ec2", region_name=region_name)
         paginator = ec2_client.get_paginator("describe_instance_type_offerings")
         page_iterator = paginator.paginate(LocationType=location_type)
         filtered_iterator = page_iterator.search("InstanceTypeOfferings")

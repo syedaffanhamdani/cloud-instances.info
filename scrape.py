@@ -9,6 +9,7 @@ import os
 import requests
 import pickle
 import boto3
+import botocore
 from six.moves.urllib import request as urllib2
 
 # Following advice from https://stackoverflow.com/a/1779324/216138
@@ -160,6 +161,31 @@ class Instance(object):
         return "<Instance {}>".format(self.instance_type)
 
 
+def create_boto3_client(service_name, region_name="us-east-1", max_retries=50):
+    """
+    Create a boto3 client with exponential backoff configuration.
+
+    Parameters:
+    - service_name: AWS service to connect to (e.g., 'ec2', 'pricing')
+    - region_name: AWS region (default: 'us-east-1')
+    - max_retries: Maximum number of retry attempts (default: 15)
+
+    Returns:
+    - Configured boto3 client
+    """
+    # Configure exponential backoff
+    config = botocore.config.Config(
+        retries={
+            "max_attempts": max_retries,
+            "mode": "adaptive",  # Adaptive mode for backoff with jitter
+        },
+        connect_timeout=10,  # Increase connection timeout
+        read_timeout=60,  # Increase read timeout
+    )
+
+    return boto3.client(service_name, region_name=region_name, config=config)
+
+
 def sanitize_instance_type(instance_type):
     """Typos and other bad data are common in the instance type columns for some reason"""
     # Remove random whitespace
@@ -274,7 +300,7 @@ def fetch_data(url):
 
 
 def add_eni_info(instances):
-    client = boto3.client("ec2", region_name="us-east-1")
+    client = create_boto3_client("ec2", region_name="us-east-1")
     pager = client.get_paginator("describe_instance_types")
     responses = pager.paginate(Filters=[{"Name": "instance-type", "Values": ["*"]}])
     for response in responses:
@@ -383,7 +409,7 @@ def add_vpconly_detail(instances):
 
 def add_instance_storage_details(instances):
     """Add information about instance storage features."""
-    client = boto3.client("ec2", region_name="us-east-1")
+    client = create_boto3_client("ec2", region_name="us-east-1")
     pager = client.get_paginator("describe_instance_types")
     responses = pager.paginate(
         Filters=[
