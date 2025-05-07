@@ -41,6 +41,7 @@ jobs:
 
       # Deploy EC2 site to R2
       - name: Deploy
+        working-directory: ./src
         env:
           # Common configuration
           BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
