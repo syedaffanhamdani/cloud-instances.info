@@ -341,10 +341,11 @@ def add_spot_pricing(imap):
                             }
                         }
 
-        except botocore.exceptions.ClientError:
+        except botocore.exceptions.ClientError as e:
+            error_message = e.response.get("Error", {}).get("Message", str(e))
             print(
-                'WARNING: Spot region "{}" not enabled. Falling back to spot advisor.'.format(
-                    region
+                'WARNING: Spot region "{}" not enabled. Falling back to spot advisor. Error: {}'.format(
+                    region, error_message
                 )
             )
             pass
