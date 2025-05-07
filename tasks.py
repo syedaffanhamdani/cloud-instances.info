@@ -197,7 +197,7 @@ def bucket_delete(c):
 
 
 @task
-def deploy(c, root_dir="www", max_workers=10):
+def deploy(c, root_dir="www", max_workers=30):
     """Deploy current content to Cloudflare R2 or S3 with parallel uploads"""
     import concurrent.futures
 
@@ -259,24 +259,32 @@ def deploy(c, root_dir="www", max_workers=10):
             if content_type:
                 extra_args["ContentType"] = content_type
 
-            # Determine the target key based on file type
-            if name.endswith(".html") and name != "index.html":
-                # For non-index HTML files, use clean URL without .html extension
-                target_key = remote_path[:-5]  # Remove .html extension
-                label = "Clean URL"
-            else:
-                # For index.html and non-HTML files, use the standard path
-                target_key = remote_path
-                label = "Standard"
+            # Define the keys and labels for upload
+            upload_targets = []
 
-            # Upload the file
-            s3.upload_file(
-                Filename=local_path,
-                Bucket=BUCKET_NAME,
-                Key=target_key,
-                ExtraArgs=extra_args,
-            )
-            uploads.append((target_key, label))
+            # Special case: index.html files should only be uploaded with their original path
+            # to avoid creating empty paths when cleaned
+            if name == "index.html":
+                upload_targets = [(remote_path, "Index HTML")]
+            # Regular HTML files (not index.html) - upload both original and clean versions
+            elif name.endswith(".html"):
+                upload_targets = [
+                    (remote_path, "Original URL"),  # With .html extension
+                    (remote_path[:-5], "Clean URL"),  # Without .html extension
+                ]
+            # Non-HTML files - upload with standard path
+            else:
+                upload_targets = [(remote_path, "Standard")]
+
+            # Upload all versions of the file
+            for target_key, label in upload_targets:
+                s3.upload_file(
+                    Filename=local_path,
+                    Bucket=BUCKET_NAME,
+                    Key=target_key,
+                    ExtraArgs=extra_args,
+                )
+                uploads.append((target_key, label))
 
             return local_path, uploads, None
         except Exception as e:
@@ -300,7 +308,6 @@ def deploy(c, root_dir="www", max_workers=10):
                 for path, type_label in uploads:
                     print(f"✓ {local_path} -> {BUCKET_NAME}/{path} ({type_label})")
                 success_count += 1
-
     print(f"\nDeployment completed: {success_count} successful, {error_count} failed")
 
 
