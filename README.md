@@ -7,18 +7,47 @@
 ![Vantage Picture](https://uploads-ssl.webflow.com/5f9ba05ba40d6414f341df34/5f9bb1764b6670c6f7739564_moutain-scene.svg)
 
 > I was sick of comparing EC2 instance metrics and pricing on Amazon's site so I
-> made [EC2Instances.info](https://ec2instances.info).
+> made EC2Instances.info.
 
-EC2Instances.info was originally created by [Garret
-Heaton](https://github.com/powdahound), is now hosted by
-[Vantage](https://vantage.sh/) and developed by the community of contributors.
+This website was originally known as EC2Instances.info and was created by [Garret
+Heaton](https://github.com/powdahound) in 2011.
+
+For many years it has been a great resource for AWS users interested in comparing EC2 instance types by specs and prices.
+
+The website also offers a very useful database of pricing and specs information for AWS EC2 instances which is also used by many other projects.
+
+As of May 2025 is was forked and now hosted at [cloud-instances.info](https://cloud-instances.info), supported by
+[Cristian Magherusan-Stanciu](https://LeanerCloud.com/) and developed in the open with the community of contributors.
 
 ## Project status
 
-Vantage employees are actively maintaining and hosting the site with the help of contributors here. Improvements in the form of pull requests or ideas via issues are welcome!
+Vantage acquired the ec2instances.info website from the original author in 2021 and mainly used the website as part of their marketing efforts.
 
-People have suggested many neat ideas and feature requests by opening issues on this repository. We also have a [Slack
-Community](https://vantage.sh/slack) for anyone to join with a devoted channel named #instances-vantage.sh.
+They actively developed it for a few years, improving it in many ways, redesigning the UI and exposing new data sources.
+
+Unfortunately the project hasn't seen much development for more than a year, and last contributions from Vantage employees were in October 2024.
+
+All changes over the last 6 months were contributed by the community, mainly by [Cristian Magherusan-Stanciu](https://LeanerCloud.com/), a cloud optimization specialist who uses the website daily on his optimization gigs, and since 2016 has been building multiple projects that rely on on the instance specs database.
+
+Cristian was a major contributor to the project and co-maintainer before Vantage acquired it and occasionally kept contributing code and reporting issues also after the acquisition.
+
+In early 2025 Vantage finally hired someone to work again on the website, but they are working behind closed doors and decided to rewrite the website from scratch, instead of addressing the ever accumulating issues.
+
+It is not clear how the rewritten website will look like, whether it will support the same functionality and instance specs database the users are relying on.
+
+As any rewrite, chances are it will take time for it to mature, introducing potentially new bugs, while the community keeps reporting issue and sending pull requests that Vantage isn't very responsive in addressing.
+
+Also, some recent features such as Azure support code haven't been open sourced by Vantage, the UI is broken and nobody can fix it.
+
+Because of all these reasons, in May 2025 Cristian decided to fork the project and create a new version of the website, which aims to be vendor neutral and developed in the open together with the rest of the community.
+
+The plan is to rewrite all the closed source Vantage features, remove all references to Vantage that may infringe on their copyrights or trademarks (logos, icons, etc.), and to extend it further to cover additional cloud providers.
+
+## Contributing
+
+Improvements in the form of pull requests or ideas via issues are very welcome from anyone!
+
+We also have a [Slack Community](https://join.slack.com/t/leanercloud/shared_invite/zt-xodcoi9j-1IcxNozXx1OW0gh_N08sjg) for anyone to join, with a dedicated support and development channel named #cloud-instances-info.
 
 ## Running locally
 
@@ -51,20 +80,20 @@ Ensure that your IAM user has at least the following permissions:
 1. Clone the repository, if not already done:
 
 ```bash
-git clone https://github.com/vantage-sh/ec2instances.info
-cd ec2instances.info
+git clone https://github.com/LeanerCloud/cloud-instances.info
+cd cloud-instances.info
 ```
 
 2. Build a `docker` image:
 
 ```bash
-docker build -t ec2instances.info .
+docker build -t cloud-instances.info .
 ```
 
 3. Run a container from the built `docker` image:
 
 ````bash
-docker run -d --name some-container -p 8080:8080 ec2instances.info
+docker run -d --name some-container -p 8080:8080 cloud-instances.info
 
 4. Open [localhost:8080](http://localhost:8080) in your browser to see it in action.
 
@@ -88,8 +117,8 @@ Make sure you have LibXML and Python development files. On Ubuntu, run `sudo apt
 Then:
 
 ```bash
-git clone https://github.com/vantage-sh/ec2instances.info
-cd ec2instances.info/
+git clone https://github.com/LeanerCloud/cloud-instances.info
+cd cloud-instances.info/
 python3 -m venv env
 source env/bin/activate
 pip install -r requirements.txt
@@ -123,7 +152,7 @@ sass --watch in/style.scss:www/style.css
 
 ## API Access
 
-The data backing EC2Instances.info is available via a free API.
+The data source is available via a free API offered by Vantage.
 
 - To get started, create a [free API key](https://vantage.readme.io/reference/authentication).
 - Review the `providers`, `services`, and `products` endpoints in the [API documentation](https://vantage.readme.io/reference/getproducts).

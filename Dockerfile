@@ -5,7 +5,7 @@ ARG AWS_SECRET_ACCESS_KEY
 ARG AWS_SESSION_TOKEN
 ARG DEBIAN_FRONTEND=noninteractive
 
-LABEL org.opencontainers.image.authors="Sebastian Sasu <sebi@nologin.ro>, Cristian Magherusan-Stanciu <cristi@leanercloud.com>, Brooke McKim <brooke@vantage.sh>"
+LABEL org.opencontainers.image.authors="Sebastian Sasu <sebi@nologin.ro>, Cristian Magherusan-Stanciu <cristi@LeanerCloud.com>, Brooke McKim <brooke@vantage.sh>"
 
 RUN apt-get update > /dev/null
 RUN apt-get install -y python3 pip locales libxml2-dev libxslt-dev nodejs npm > /dev/null

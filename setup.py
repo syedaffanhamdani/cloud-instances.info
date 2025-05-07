@@ -4,12 +4,12 @@ from setuptools import setup
 
 
 setup(
-    name="ec2instances.info",
-    packages=["ec2instances.info"],
+    name="cloud-instances.info",
+    packages=["cloud-instances.info"],
     version="0.0.2",
     description="The community-maintained dataset of aws instance types" " and pricing",
     author="Garret Heaton",
     author_email="github@garretheaton.com",
-    url="https://github.com/powdahound/ec2instances.info",
+    url="https://github.com/LeanerCloud/cloud-instances.info",
     license="MIT",
 )

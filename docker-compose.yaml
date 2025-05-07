@@ -1,6 +1,6 @@
 version: '3'
 services:
-  ec2instances.info:
+  cloud-instances.info:
     build:
       context: .
       args:

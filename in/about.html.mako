@@ -17,13 +17,13 @@
         </p>
         <h4>Who?</h4>
         <p>
-          It was started by <a href="http://twitter.com/powdahound" target="_blank">@powdahound</a>, contributed to by <a href="https://github.com/vantage-sh/ec2instances.info/contributors" target="_blank">many</a>, 
-          is now managed and maintained by <a href='http://vantage.sh/' target="_blank">Vantage</a>, and awaits your improvements <a href="https://github.com/vantage-sh/ec2instances.info" target="_blank">on GitHub</a>.  
+          It was started by <a href="http://twitter.com/powdahound" target="_blank">@powdahound</a>, contributed to by <a href="https://github.com/vantage-sh/ec2instances.info/contributors" target="_blank">many</a>,
+          is now managed and maintained by <a href='http://LeanerCloud.com/' target="_blank">Cristian Magherusan-Stanciu</a>, developed in the open together with the wider Open Source community, and awaits your improvements <a href="https://github.com/LeanerCloud/cloud-instances.info" target="_blank">on GitHub</a>.
           In the development of Detail Pages, we used designs from <a href="https://cloudhw.info/">cloudhw.info</a> with permission from <a href="https://powersj.io/">Joshua Powers</a>.
         </p>
         <h4 class="bg-warning">Warning</h4>
         <p>
-          This site is not maintained by or affiliated with Amazon. The data shown is not guaranteed to be accurate or current. Please <a href="http://github.com/powdahound/ec2instances.info/issues">report issues</a> you see.
+          This site is not maintained by or affiliated with Amazon. The data shown is not guaranteed to be accurate or current. Please <a href="http://github.com/LeanerCloud/cloud-instances.info/issues">report issues</a> you see.
         </p>
       </div>
       <div class="col-6">
