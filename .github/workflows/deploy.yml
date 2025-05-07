@@ -50,6 +50,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
         run: |
+          source env/bin/activate
           invoke deploy
 
       # Commented out since apparently the Azure port hasn't been open sourced by Vantage (yet).
