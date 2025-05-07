@@ -244,36 +244,38 @@ def deploy(c, root_dir="www", max_workers=10):
     # Function to handle a single file upload
     def upload_file(task):
         local_path, remote_path, name = task
-        extra_args = extra_args_base.copy()
+        uploads = []
 
         try:
             # Handle HTML files - compress with gzip
             if name.endswith(".html"):
-                # Create in-memory compressed file
-                compressed_file = BytesIO()
-                with gzip.GzipFile(fileobj=compressed_file, mode="wb") as gz, open(
-                    local_path, "rb"
-                ) as fp:
-                    shutil.copyfileobj(fp, gz)
+                # Read the file content once
+                with open(local_path, "rb") as fp:
+                    file_content = fp.read()
 
-                compressed_file.seek(0)
-
-                # Add content-type and encoding headers
-                extra_args.update(
+                # Base extra args for HTML files
+                html_extra_args = extra_args_base.copy()
+                html_extra_args.update(
                     {"ContentType": "text/html", "ContentEncoding": "gzip"}
                 )
 
-                # Upload the compressed file
+                # Upload standard path with .html extension
+                compressed_content = BytesIO()
+                with gzip.GzipFile(fileobj=compressed_content, mode="wb") as gz:
+                    gz.write(file_content)
+
+                compressed_content.seek(0)
                 s3.upload_fileobj(
-                    Fileobj=compressed_file,
+                    Fileobj=compressed_content,
                     Bucket=BUCKET_NAME,
                     Key=remote_path,
-                    ExtraArgs=extra_args,
+                    ExtraArgs=html_extra_args,
                 )
-                uploads = [(remote_path, "Standard")]
+                uploads.append((remote_path, "Standard"))
 
                 # For clean URLs (if using R2), upload to path without .html
                 if os.environ.get("R2_ACCOUNT_ID"):
+                    # Create a fresh compressed object for each upload
                     if name == "index.html":
                         # For index.html files, upload to the directory path
                         directory_path = os.path.dirname(remote_path)
@@ -282,27 +284,43 @@ def deploy(c, root_dir="www", max_workers=10):
                         else:
                             directory_path += "/"
 
-                        compressed_file.seek(0)
+                        # Create fresh compressed content for directory path
+                        dir_compressed_content = BytesIO()
+                        with gzip.GzipFile(
+                            fileobj=dir_compressed_content, mode="wb"
+                        ) as gz:
+                            gz.write(file_content)
+
+                        dir_compressed_content.seek(0)
                         s3.upload_fileobj(
-                            Fileobj=compressed_file,
+                            Fileobj=dir_compressed_content,
                             Bucket=BUCKET_NAME,
                             Key=directory_path,
-                            ExtraArgs=extra_args,
+                            ExtraArgs=html_extra_args,
                         )
                         uploads.append((directory_path, "Clean URL"))
                     else:
                         # For non-index HTML files, upload to path without .html extension
                         clean_path = remote_path[:-5]  # Remove .html extension
-                        compressed_file.seek(0)
+
+                        # Create fresh compressed content for clean path
+                        clean_compressed_content = BytesIO()
+                        with gzip.GzipFile(
+                            fileobj=clean_compressed_content, mode="wb"
+                        ) as gz:
+                            gz.write(file_content)
+
+                        clean_compressed_content.seek(0)
                         s3.upload_fileobj(
-                            Fileobj=compressed_file,
+                            Fileobj=clean_compressed_content,
                             Bucket=BUCKET_NAME,
                             Key=clean_path,
-                            ExtraArgs=extra_args,
+                            ExtraArgs=html_extra_args,
                         )
                         uploads.append((clean_path, "Clean URL"))
             else:
                 # For non-HTML files, try to guess the content type
+                extra_args = extra_args_base.copy()
                 content_type = mimetypes.guess_type(local_path)[0]
                 if content_type:
                     extra_args["ContentType"] = content_type
@@ -314,7 +332,7 @@ def deploy(c, root_dir="www", max_workers=10):
                     Key=remote_path,
                     ExtraArgs=extra_args,
                 )
-                uploads = [(remote_path, "Standard")]
+                uploads.append((remote_path, "Standard"))
 
             return local_path, uploads, None
         except Exception as e:
