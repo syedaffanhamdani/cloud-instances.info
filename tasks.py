@@ -247,92 +247,36 @@ def deploy(c, root_dir="www", max_workers=10):
         uploads = []
 
         try:
-            # Handle HTML files - compress with gzip
-            if name.endswith(".html"):
-                # Read the file content once
-                with open(local_path, "rb") as fp:
-                    file_content = fp.read()
+            # Set content type based on file extension
+            content_type = (
+                "text/html"
+                if name.endswith(".html")
+                else mimetypes.guess_type(local_path)[0]
+            )
 
-                # Base extra args for HTML files
-                html_extra_args = extra_args_base.copy()
-                html_extra_args.update(
-                    {"ContentType": "text/html", "ContentEncoding": "gzip"}
-                )
+            # Prepare extra args with content type
+            extra_args = extra_args_base.copy()
+            if content_type:
+                extra_args["ContentType"] = content_type
 
-                # Upload standard path with .html extension
-                compressed_content = BytesIO()
-                with gzip.GzipFile(fileobj=compressed_content, mode="wb") as gz:
-                    gz.write(file_content)
-
-                compressed_content.seek(0)
-                s3.upload_fileobj(
-                    Fileobj=compressed_content,
-                    Bucket=BUCKET_NAME,
-                    Key=remote_path,
-                    ExtraArgs=html_extra_args,
-                )
-                uploads.append((remote_path, "Standard"))
-
-                # For clean URLs (if using R2), upload to path without .html
-                if os.environ.get("R2_ACCOUNT_ID"):
-                    # Create a fresh compressed object for each upload
-                    if name == "index.html":
-                        # For index.html files, upload to the directory path
-                        directory_path = os.path.dirname(remote_path)
-                        if not directory_path or directory_path == ".":
-                            directory_path = ""
-                        else:
-                            directory_path += "/"
-
-                        # Create fresh compressed content for directory path
-                        dir_compressed_content = BytesIO()
-                        with gzip.GzipFile(
-                            fileobj=dir_compressed_content, mode="wb"
-                        ) as gz:
-                            gz.write(file_content)
-
-                        dir_compressed_content.seek(0)
-                        s3.upload_fileobj(
-                            Fileobj=dir_compressed_content,
-                            Bucket=BUCKET_NAME,
-                            Key=directory_path,
-                            ExtraArgs=html_extra_args,
-                        )
-                        uploads.append((directory_path, "Clean URL"))
-                    else:
-                        # For non-index HTML files, upload to path without .html extension
-                        clean_path = remote_path[:-5]  # Remove .html extension
-
-                        # Create fresh compressed content for clean path
-                        clean_compressed_content = BytesIO()
-                        with gzip.GzipFile(
-                            fileobj=clean_compressed_content, mode="wb"
-                        ) as gz:
-                            gz.write(file_content)
-
-                        clean_compressed_content.seek(0)
-                        s3.upload_fileobj(
-                            Fileobj=clean_compressed_content,
-                            Bucket=BUCKET_NAME,
-                            Key=clean_path,
-                            ExtraArgs=html_extra_args,
-                        )
-                        uploads.append((clean_path, "Clean URL"))
+            # Determine the target key based on file type
+            if name.endswith(".html") and name != "index.html":
+                # For non-index HTML files, use clean URL without .html extension
+                target_key = remote_path[:-5]  # Remove .html extension
+                label = "Clean URL"
             else:
-                # For non-HTML files, try to guess the content type
-                extra_args = extra_args_base.copy()
-                content_type = mimetypes.guess_type(local_path)[0]
-                if content_type:
-                    extra_args["ContentType"] = content_type
+                # For index.html and non-HTML files, use the standard path
+                target_key = remote_path
+                label = "Standard"
 
-                # Upload the file directly
-                s3.upload_file(
-                    Filename=local_path,
-                    Bucket=BUCKET_NAME,
-                    Key=remote_path,
-                    ExtraArgs=extra_args,
-                )
-                uploads.append((remote_path, "Standard"))
+            # Upload the file
+            s3.upload_file(
+                Filename=local_path,
+                Bucket=BUCKET_NAME,
+                Key=target_key,
+                ExtraArgs=extra_args,
+            )
+            uploads.append((target_key, label))
 
             return local_path, uploads, None
         except Exception as e:
