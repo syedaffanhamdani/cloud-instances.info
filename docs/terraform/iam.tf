@@ -22,6 +22,7 @@ resource "aws_iam_policy" "ec2_pricing" {
           "ec2:DescribeInstanceTypeOfferings",
           "ec2:DescribeInstanceTypes",
           "ec2:DescribeRegions",
+          "ec2:DescribeSpotPriceHistory",
           "elasticache:DescribeEngineDefaultParameters",
           "pricing:GetProducts",
         ],
