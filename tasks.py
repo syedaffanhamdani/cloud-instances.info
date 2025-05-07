@@ -197,10 +197,38 @@ def bucket_delete(c):
 
 
 @task
-def deploy(c, root_dir="www"):
-    """Deploy current content"""
-    s3 = boto3.client("s3")
+def deploy(c, root_dir="www", max_workers=10):
+    """Deploy current content to Cloudflare R2 or S3 with parallel uploads"""
+    import concurrent.futures
 
+    # Get bucket name from environment variable or use default
+    BUCKET_NAME = os.environ.get("BUCKET_NAME", "www.ec2instances.info")
+
+    # Determine if we're using R2 or S3 based on environment variables
+    if os.environ.get("R2_ACCOUNT_ID"):
+        # Using R2
+        print(f"Deploying to Cloudflare R2 bucket: {BUCKET_NAME}")
+        endpoint_url = (
+            f"https://{os.environ.get('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+        )
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"),
+            region_name="auto",
+        )
+        # R2 doesn't support ACL
+        extra_args_base = {}
+    else:
+        # Using AWS S3
+        print(f"Deploying to AWS S3 bucket: {BUCKET_NAME}")
+        s3 = boto3.client("s3")
+        # S3 requires ACL for public access
+        extra_args_base = {"ACL": "public-read"}
+
+    # Collect all files to upload
+    upload_tasks = []
     for root, dirs, files in os.walk(root_dir):
         for name in files:
             if name.startswith("."):
@@ -208,10 +236,17 @@ def deploy(c, root_dir="www"):
 
             local_path = os.path.join(root, name)
             remote_path = local_path[len(root_dir) + 1 :]
-            print(f"{local_path} -> {BUCKET_NAME}/{remote_path}")
+            upload_tasks.append((local_path, remote_path, name))
 
-            extra_args = {"ACL": "public-read"}
+    total_files = len(upload_tasks)
+    print(f"Uploading {total_files} files to {BUCKET_NAME}...")
 
+    # Function to handle a single file upload
+    def upload_file(task):
+        local_path, remote_path, name = task
+        extra_args = extra_args_base.copy()
+
+        try:
             # Handle HTML files - compress with gzip
             if name.endswith(".html"):
                 # Create in-memory compressed file
@@ -235,6 +270,37 @@ def deploy(c, root_dir="www"):
                     Key=remote_path,
                     ExtraArgs=extra_args,
                 )
+                uploads = [(remote_path, "Standard")]
+
+                # For clean URLs (if using R2), upload to path without .html
+                if os.environ.get("R2_ACCOUNT_ID"):
+                    if name == "index.html":
+                        # For index.html files, upload to the directory path
+                        directory_path = os.path.dirname(remote_path)
+                        if not directory_path or directory_path == ".":
+                            directory_path = ""
+                        else:
+                            directory_path += "/"
+
+                        compressed_file.seek(0)
+                        s3.upload_fileobj(
+                            Fileobj=compressed_file,
+                            Bucket=BUCKET_NAME,
+                            Key=directory_path,
+                            ExtraArgs=extra_args,
+                        )
+                        uploads.append((directory_path, "Clean URL"))
+                    else:
+                        # For non-index HTML files, upload to path without .html extension
+                        clean_path = remote_path[:-5]  # Remove .html extension
+                        compressed_file.seek(0)
+                        s3.upload_fileobj(
+                            Fileobj=compressed_file,
+                            Bucket=BUCKET_NAME,
+                            Key=clean_path,
+                            ExtraArgs=extra_args,
+                        )
+                        uploads.append((clean_path, "Clean URL"))
             else:
                 # For non-HTML files, try to guess the content type
                 content_type = mimetypes.guess_type(local_path)[0]
@@ -248,6 +314,32 @@ def deploy(c, root_dir="www"):
                     Key=remote_path,
                     ExtraArgs=extra_args,
                 )
+                uploads = [(remote_path, "Standard")]
+
+            return local_path, uploads, None
+        except Exception as e:
+            return local_path, None, str(e)
+
+    # Upload files in parallel
+    success_count = 0
+    error_count = 0
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_task = {
+            executor.submit(upload_file, task): task for task in upload_tasks
+        }
+
+        for future in concurrent.futures.as_completed(future_to_task):
+            local_path, uploads, error = future.result()
+            if error:
+                print(f"ERROR uploading {local_path}: {error}")
+                error_count += 1
+            else:
+                for path, type_label in uploads:
+                    print(f"✓ {local_path} -> {BUCKET_NAME}/{path} ({type_label})")
+                success_count += 1
+
+    print(f"\nDeployment completed: {success_count} successful, {error_count} failed")
 
 
 @task(default=True)

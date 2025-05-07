@@ -40,16 +40,17 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       # Deploy EC2 site to R2
-      - name: Deploy EC2 site to R2
+      - name: Deploy
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_EC2_METADATA_DISABLED: true
-        working-directory: ./src
+          # Common configuration
+          BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+
         run: |
-          source env/bin/activate
-          aws s3 sync ./www/ s3://${{ secrets.R2_BUCKET_NAME }}/ \
-            --endpoint-url https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          invoke deploy
 
       # Commented out since apparently the Azure port hasn't been open sourced by Vantage (yet).
 
