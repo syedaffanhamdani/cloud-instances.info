@@ -262,15 +262,28 @@ def deploy(c, root_dir="www", max_workers=30):
             # Define the keys and labels for upload
             upload_targets = []
 
-            # Special case: index.html files should only be uploaded with their original path
-            # to avoid creating empty paths when cleaned
+            # Handle index.html files specially
             if name == "index.html":
-                upload_targets = [(remote_path, "Index HTML")]
-            # Regular HTML files (not index.html) - upload both original and clean versions
+                # Upload with original path (e.g., "rds/index.html" or "index.html" for the root index file)
+                upload_targets.append((remote_path, "Index HTML"))
+
+                # For directory index files, like "rds/index.html" also create clean directory URLs
+                dir_path = os.path.dirname(remote_path)
+                if dir_path:
+                    # For subdirectory index.html (e.g., "rds/index.html")
+                    # Create "rds/" and "rds" URLs
+                    upload_targets.append((dir_path + "/", "Directory URL"))
+                    upload_targets.append((dir_path, "Directory URL (no slash)"))
+                # For root index.html, don't create a "/" URL - that's not supported by R2. We handled that using a simple redirect Cloudflare Worker.
+            # Regular HTML files (not index.html)
             elif name.endswith(".html"):
+                # Get clean path without extension
+                clean_path = remote_path[:-5]
+
                 upload_targets = [
                     (remote_path, "Original URL"),  # With .html extension
-                    (remote_path[:-5], "Clean URL"),  # Without .html extension
+                    (clean_path, "Clean URL"),  # Without .html extension
+                    (clean_path + "/", "Directory URL"),  # With trailing slash
                 ]
             # Non-HTML files - upload with standard path
             else:
