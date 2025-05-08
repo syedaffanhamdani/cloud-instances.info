@@ -318,7 +318,7 @@ function init_data_table() {
         text: 'Export',
         className: 'btn-primary d-none d-xxl-block',
         exportOptions: {
-          modifier: {search: 'applied'},
+          modifier: { search: 'applied' },
           columns: ':visible',
         },
       },
@@ -555,8 +555,20 @@ function change_region(region, called_on_init) {
   g_settings.region = region;
 
   var urlpath = window.location.pathname;
-  var prices_path = urlpath + 'pricing_' + region + '.json';
-  var azs_path = urlpath + 'instance_azs_' + region + '.json';
+
+  // Get base URL (origin) and normalize the current path
+  var origin = window.location.origin;
+  var currentPath = window.location.pathname;
+
+  // Remove filename if present and ensure proper path format
+  currentPath = currentPath.replace(/\/[^\/]*\.[^\/]*$/, '/');
+  if (!currentPath.endsWith('/')) {
+    currentPath += '/';
+  }
+
+  // Construct the file paths by joining components
+  var prices_path = new URL('pricing_' + region + '.json', origin + currentPath).href;
+  var azs_path = new URL('instance_azs_' + region + '.json', origin + currentPath).href;
 
   Promise.all([
     fetch(prices_path)
