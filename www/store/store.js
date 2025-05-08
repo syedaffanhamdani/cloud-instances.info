@@ -4,8 +4,8 @@
   typeof define == 'function' && define.amd
     ? define([], t)
     : typeof exports == 'object'
-    ? (module.exports = t())
-    : (e.store = t());
+      ? (module.exports = t())
+      : (e.store = t());
 })(this, function () {
   function o() {
     try {

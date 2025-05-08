@@ -318,7 +318,7 @@ function init_data_table() {
         text: 'Export',
         className: 'btn-primary d-none d-xxl-block',
         exportOptions: {
-          modifier: { search: 'applied' },
+          modifier: {search: 'applied'},
           columns: ':visible',
         },
       },
