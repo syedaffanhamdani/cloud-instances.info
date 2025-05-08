@@ -119,7 +119,7 @@
               <a href="/about.html">About</a>
             </div>
             <div class="col-4 right linkto pull-right">
-              <span>Maintained by <a target="_blank" href="https://LeanerCloud.com/">Cristian Magherusan-Stanciu</a></span>
+              <span><a target="_blank" href="https://github.com/LeanerCloud/cloud-instances.info/issues/new/">Report issues, give feedback or suggest improvements.</a></span>
             </div>
           </div>
       </div>

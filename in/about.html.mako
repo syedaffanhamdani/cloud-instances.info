@@ -23,7 +23,7 @@
         </p>
         <h4 class="bg-warning">Warning</h4>
         <p>
-          This site is not maintained by or affiliated with Amazon. The data shown is not guaranteed to be accurate or current. Please <a href="http://github.com/LeanerCloud/cloud-instances.info/issues">report issues</a> you see.
+          This site is not maintained by or affiliated with Amazon. The data shown is not guaranteed to be accurate or current. Please <a href="http://github.com/LeanerCloud/cloud-instances.info/issues/new">report issues</a> you see.
         </p>
       </div>
       <div class="col-6">

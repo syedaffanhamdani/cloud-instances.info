@@ -237,9 +237,6 @@
           <div class="sidebar-section links">
             See a data problem? <a href="https://github.com/LeanerCloud/cloud-instances.info/issues/new" target="_blank" class="text-decoration-none">Open a ticket.</a>
           </div>
-          <div class="sidebar-section ticket small">
-            <span>Supported by <a target="_blank" href="https://LeanerCloud.com" class="text-decoration-none">Cristian Magherusan-Stanciu</a></span>
-          </div>
         </div>
       </div>
     </div>
