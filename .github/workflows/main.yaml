@@ -68,10 +68,11 @@ jobs:
           AWS_REGION: 'us-east-1'
 
       - name: Initialize Terraform
-        run: terraform init
         working-directory: infra/terraform/cloudflare_ephemeral_infra
+        run: terraform init
 
       - name: Terraform apply
+        working-directory: infra/terraform/cloudflare_ephemeral_infra
         id: apply
         run: |
           terraform apply -auto-approve \
@@ -110,6 +111,7 @@ jobs:
 
   teardown-environment:
     runs-on: ubuntu-latest
+    needs: setup-environment
     # Only run this job when the PR is closed
     if: github.event.action == 'closed'
 
