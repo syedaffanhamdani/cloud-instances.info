@@ -5,6 +5,13 @@ on:
     types: [opened, synchronize, reopened]
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request Number'
+        required: true
+        default: ${{ github.event.number }}
+
 
 permissions:
   id-token: write
