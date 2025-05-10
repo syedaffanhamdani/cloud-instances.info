@@ -71,43 +71,43 @@ jobs:
         working-directory: infra/terraform/cloudflare_ephemeral_infra
         run: terraform init
 
-      - name: Terraform apply
-        working-directory: infra/terraform/cloudflare_ephemeral_infra
-        id: apply
-        run: |
-          terraform apply -auto-approve \
-            -var="cloudflare_deployment_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
-            -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" \
-            -var="bucket_name=${{ env.BUCKET_NAME }}" \
-            -var="domain_name=cloud-instances.info" \
-            -var="subdomain=${{ env.SUBDOMAIN }}" \
-            -var="bucket_location=auto"
+#      - name: Terraform apply
+#        working-directory: infra/terraform/cloudflare_ephemeral_infra
+#        id: apply
+#        run: |
+#          terraform apply -auto-approve \
+#            -var="cloudflare_deployment_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+#            -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
+#            -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" \
+#            -var="bucket_name=${{ env.BUCKET_NAME }}" \
+#            -var="domain_name=cloud-instances.info" \
+#            -var="subdomain=${{ env.SUBDOMAIN }}" \
+#            -var="bucket_location=auto"
+#
+#          terraform output -json > tf_output.json
+#          echo "website_url=$(cat tf_output.json | jq -r '.website_url.value')" >> $GITHUB_ENV        working-directory: infra/terraform/cloudflare_ephemeral_infra
 
-          terraform output -json > tf_output.json
-          echo "website_url=$(cat tf_output.json | jq -r '.website_url.value')" >> $GITHUB_ENV        working-directory: infra/terraform/cloudflare_ephemeral_infra
+#      - name: Deploy site to R2
+#        run: |
+#          echo "invoke deploy"
+#           invoke deploy
+#         env:
+#           R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+#           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+#           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+#           BUCKET_NAME: ${{ env.BUCKET_NAME }}
 
-      - name: Deploy site to R2
-        run: |
-          echo "invoke deploy"
-  #          invoke deploy
-  #        env:
-  #          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-  #          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-  #          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-  #          BUCKET_NAME: ${{ env.BUCKET_NAME }}
-
-  #      - name: Add PR comment with preview URL
-  #        uses: actions/github-script@v7
-  #        with:
-  #          github-token: ${{ secrets.GITHUB_TOKEN }}
-  #          script: |
-  #            github.rest.issues.createComment({
-  #              issue_number: context.issue.number,
-  #              owner: context.repo.owner,
-  #              repo: context.repo.repo,
-  #              body: `✅ Preview environment deployed successfully!\n\n🔗 [Preview URL](${{ env.website_url }})\n\nEnvironment will be destroyed when the PR is closed.`
-  #            })
+#       - name: Add PR comment with preview URL
+#         uses: actions/github-script@v7
+#         with:
+#           github-token: ${{ secrets.GITHUB_TOKEN }}
+#           script: |
+#             github.rest.issues.createComment({
+#               issue_number: context.issue.number,
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               body: `✅ Preview environment deployed successfully!\n\n🔗 [Preview URL](${{ env.website_url }})\n\nEnvironment will be destroyed when the PR is closed.`
+#             })
 
   teardown-environment:
     runs-on: ubuntu-latest
