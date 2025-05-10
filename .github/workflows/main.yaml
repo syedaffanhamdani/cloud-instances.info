@@ -83,10 +83,8 @@ jobs:
             -var="subdomain=${{ env.SUBDOMAIN }}" \
             -var="bucket_location=auto"
 
-        # Save the terraform output to use in subsequent steps
           terraform output -json > tf_output.json
-          echo "website_url=$(cat tf_output.json | jq -r '.website_url.value')" >> $GITHUB_ENV
-        working-directory: infra/terraform/cloudflare_ephemeral_infra
+          echo "website_url=$(cat tf_output.json | jq -r '.website_url.value')" >> $GITHUB_ENV        working-directory: infra/terraform/cloudflare_ephemeral_infra
 
       - name: Deploy site to R2
         run: |
