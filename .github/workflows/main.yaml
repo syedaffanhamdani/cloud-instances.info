@@ -3,6 +3,8 @@ name: main
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    branches:
+      - master
 
 permissions:
   id-token: write
@@ -72,19 +74,18 @@ jobs:
       - name: Terraform apply
         id: apply
         run: |
-          echo "terraform apply demonstration"
-        #          terraform apply -auto-approve \
-        #            -var="cloudflare_deployment_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-        #            -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
-        #            -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" \
-        #            -var="bucket_name=${{ env.BUCKET_NAME }}" \
-        #            -var="domain_name=cloud-instances.info" \
-        #            -var="subdomain=${{ env.SUBDOMAIN }}" \
-        #            -var="bucket_location=auto"
+          terraform apply -auto-approve \
+            -var="cloudflare_deployment_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" \
+            -var="bucket_name=${{ env.BUCKET_NAME }}" \
+            -var="domain_name=cloud-instances.info" \
+            -var="subdomain=${{ env.SUBDOMAIN }}" \
+            -var="bucket_location=auto"
 
         # Save the terraform output to use in subsequent steps
-        #          terraform output -json > tf_output.json
-        #          echo "website_url=$(cat tf_output.json | jq -r '.website_url.value')" >> $GITHUB_ENV
+          terraform output -json > tf_output.json
+          echo "website_url=$(cat tf_output.json | jq -r '.website_url.value')" >> $GITHUB_ENV
         working-directory: infra/terraform/cloudflare_ephemeral_infra
 
       - name: Deploy site to R2
