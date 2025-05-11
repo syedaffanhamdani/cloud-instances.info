@@ -3,6 +3,12 @@
 result/
 env/
 bootstrap/
-instances.json
 index.html
-www/
+www/aws/ec2/*.html
+www/aws/elasticache/*.html
+www/aws/opensearch/*.html
+www/aws/rds/*.html
+www/aws/redshift/*.html
+www/**/*.json
+www/*.xml
+www/about.html
