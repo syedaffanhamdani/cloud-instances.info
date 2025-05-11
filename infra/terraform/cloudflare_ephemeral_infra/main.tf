@@ -15,10 +15,12 @@ locals {
 
 # Create Cloudflare R2 bucket with version 5.1.0 provider
 resource "cloudflare_r2_bucket" "website_bucket" {
-  provider   = cloudflare.v5_1_0 # Use the aliased provider
-  account_id = var.cloudflare_account_id
-  name       = var.bucket_name
-  location   = var.bucket_location
+  provider      = cloudflare.v5_1_0 # Use the aliased provider
+  account_id    = var.cloudflare_account_id
+  name          = var.bucket_name
+  location      = var.bucket_location
+  storage_class = "Standard"
+  jurisdiction  = "default"
 }
 
 # Create Cloudflare Worker script
