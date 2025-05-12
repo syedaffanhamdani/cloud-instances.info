@@ -10,6 +10,8 @@ on:
 permissions:
   id-token: write
   contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
   build-and-deploy:
@@ -68,11 +70,39 @@ jobs:
           terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
           terraform workspace new production || terraform workspace select production
 
+      # Check if environment already exists and redirects correctly
+      - name: Check if environment already exists and redirects
+        id: check_redirect
+        run: |
+          DOMAIN="cloud-instances.info"
+          WEBSITE_URL="https://$DOMAIN"
+          echo "Checking if $WEBSITE_URL exists and redirects from / to /index.html"
+
+          # Check if the URL exists and if it redirects
+          REDIRECT_CHECK=$(curl -s -o /dev/null -w "%{http_code}\n%{redirect_url}\n" "$WEBSITE_URL" || echo "Error")
+
+          HTTP_CODE=$(echo "$REDIRECT_CHECK" | head -n 1)
+          REDIRECT_URL=$(echo "$REDIRECT_CHECK" | tail -n 1)
+
+          echo "HTTP Code: $HTTP_CODE"
+          echo "Redirect URL: $REDIRECT_URL"
+
+          # Set the output based on the check
+          if [[ "$HTTP_CODE" == "30"* && "$REDIRECT_URL" == *"/index.html" ]]; then
+            echo "SKIP_APPLY=true" >> $GITHUB_ENV
+            echo "WEBSITE_URL=$WEBSITE_URL" >> $GITHUB_ENV
+            echo "Environment already exists and redirects correctly"
+          else
+            echo "SKIP_APPLY=false" >> $GITHUB_ENV
+            echo "Environment doesn't exist or doesn't redirect correctly"
+          fi
+
       - name: Terraform apply
         working-directory: ./src/infra/terraform/cloudflare_environment
         id: apply
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        if: env.SKIP_APPLY != 'true'
         run: |
           terraform apply -auto-approve \
             -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
@@ -80,11 +110,18 @@ jobs:
             -var="bucket_name=${{ secrets.R2_BUCKET_NAME }}" \
             -var="domain_name=cloud-instances.info" \
             -var="subdomain=@" \
-            -var="bucket_location=auto"
+            -var="bucket_location=eeur"
           # Save the terraform output
           terraform output -json > tf_output.json
 
-      # Deploy EC2 site to R2
+      # Create output file even if skipped apply
+      - name: Create empty output file if skipped apply
+        if: env.SKIP_APPLY == 'true'
+        working-directory: ./src/infra/terraform/cloudflare_environment
+        run: |
+          echo "Skipping Terraform apply because the site was previously deployed"
+
+      # Deploy site to R2
       - name: Deploy
         working-directory: ./src
         env:
@@ -96,28 +133,6 @@ jobs:
         run: |
           source env/bin/activate
           invoke deploy
-
-      # Commented out since apparently the Azure port hasn't been open sourced by Vantage (yet).
-      #   # Build the Azure instances site
-      #   - name: Build Azure site
-      #     working-directory: ./src
-      #     run: |
-      #       invoke build
-      #     env:
-      #       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      #       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      #       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      #   # Deploy Azure site to R2 if build was successful
-      #   - name: Deploy Azure site to R2
-      #     if: steps.check-azure-repo.outputs.azure_repo_exists == 'true'
-      #     uses: ryand56/r2-upload-action@latest
-      #     with:
-      #       r2-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      #       r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-      #       r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-      #       r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-      #       source-dir: ./src/azure/www # Update path if different
-      #       destination-dir: '/azure/' # Upload to azure subfolder
 
       # Clear Cloudflare cache to ensure latest content is served
       - name: Purge Cloudflare cache
