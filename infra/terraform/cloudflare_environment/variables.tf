@@ -16,7 +16,7 @@ variable "bucket_name" {
 variable "bucket_location" {
   description = "Location hint for the R2 bucket (e.g., weur for Western Europe)"
   type        = string
-  default     = "auto"
+  default     = "weur"
 }
 
 variable "domain_name" {
