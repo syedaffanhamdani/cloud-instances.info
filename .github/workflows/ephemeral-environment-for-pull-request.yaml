@@ -83,7 +83,7 @@ jobs:
             -var="bucket_name=${{ env.BUCKET_NAME }}" \
             -var="domain_name=cloud-instances.info" \
             -var="subdomain=${{ env.SUBDOMAIN }}" \
-            -var="bucket_location=auto"
+            -var="bucket_location=weur"
           # Save the terraform output to use in subsequent steps
           terraform output -json > tf_output.json
           echo "website_url=$(cat tf_output.json | jq -r '.website_url.value')" >> $GITHUB_ENV
@@ -138,7 +138,7 @@ jobs:
             -var="bucket_name=${{ env.BUCKET_NAME }}" \
             -var="domain_name=cloud-instances.info" \
             -var="subdomain=${{ env.SUBDOMAIN }}" \
-            -var="bucket_location=auto"
+            -var="bucket_location=weur"
 
       - name: Add PR comment about environment destruction
         uses: actions/github-script@v7
