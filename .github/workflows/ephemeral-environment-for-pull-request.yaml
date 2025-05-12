@@ -66,13 +66,13 @@ jobs:
           AWS_REGION: 'us-east-1'
 
       - name: Initialize Terraform
-        working-directory: infra/terraform/cloudflare_env
+        working-directory: infra/terraform/cloudflare_environment
         run: |
           terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
           terraform workspace new pr-${{ github.event.number }} || terraform workspace select  pr-${{ github.event.number }}
 
       - name: Terraform apply
-        working-directory: infra/terraform/cloudflare_env
+        working-directory: infra/terraform/cloudflare_environment
         id: apply
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -121,13 +121,13 @@ jobs:
           echo "SUBDOMAIN=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
 
       - name: Initialize Terraform
-        working-directory: infra/terraform/cloudflare_env
+        working-directory: infra/terraform/cloudflare_environment
         run: |
           terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
           terraform workspace select pr-${{ github.event.number }}
 
       - name: Destroy PR environment
-        working-directory: infra/terraform/cloudflare_env
+        working-directory: infra/terraform/cloudflare_environment
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
