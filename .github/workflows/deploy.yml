@@ -19,8 +19,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          path: src
 
       - name: Install en_US.UTF-8 locale
         run: |
@@ -50,7 +48,6 @@ jobs:
 
       # Install dependencies and build site
       - name: Build
-        working-directory: ./src
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-dev libxml2-dev libxslt1-dev libssl-dev
@@ -65,7 +62,7 @@ jobs:
 
       # Setup Terraform and create infrastructure with @ subdomain
       - name: Initialize Terraform
-        working-directory: ./src/infra/terraform/cloudflare_environment
+        working-directory: infra/terraform/cloudflare_environment
         run: |
           terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
           terraform workspace new production || terraform workspace select production
@@ -98,7 +95,7 @@ jobs:
           fi
 
       - name: Terraform apply
-        working-directory: ./src/infra/terraform/cloudflare_environment
+        working-directory: infra/terraform/cloudflare_environment
         id: apply
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -117,13 +114,12 @@ jobs:
       # Create output file even if skipped apply
       - name: Create empty output file if skipped apply
         if: env.SKIP_APPLY == 'true'
-        working-directory: ./src/infra/terraform/cloudflare_environment
+        working-directory: infra/terraform/cloudflare_environment
         run: |
           echo "Skipping Terraform apply because the site was previously deployed"
 
       # Deploy site to R2
       - name: Deploy
-        working-directory: ./src
         env:
           # Common configuration
           BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
