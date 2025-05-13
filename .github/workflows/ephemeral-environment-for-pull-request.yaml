@@ -127,7 +127,6 @@ jobs:
           echo "Using existing website URL: ${{ env.WEBSITE_URL }}"
 
       - name: Deploy
-        working-directory: ./src
         env:
           # Common configuration
           BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
