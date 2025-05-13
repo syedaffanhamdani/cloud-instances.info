@@ -59,10 +59,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-dev libxml2-dev libxslt1-dev libssl-dev
           python -m pip install --upgrade pip
+          python3 -m venv env
+          source env/bin/activate
           pip install -r requirements.txt
 
       - name: Build site
-        run: invoke build
+        run: |
+          source env/bin/activate
+          invoke build
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -121,6 +125,18 @@ jobs:
         if: env.SKIP_APPLY == 'true'
         run: |
           echo "Using existing website URL: ${{ env.WEBSITE_URL }}"
+
+      - name: Deploy
+        working-directory: ./src
+        env:
+          # Common configuration
+          BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          source env/bin/activate
+          invoke deploy
 
       - name: Add PR comment with preview URL
         uses: actions/github-script@v7
