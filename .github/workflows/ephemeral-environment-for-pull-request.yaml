@@ -1,0 +1,201 @@
+name: create-ephemeral-environment-for-pull-request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - master
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  setup-environment:
+    runs-on: ubuntu-latest
+    # Only run this job when the PR is opened/synchronized/reopened, not when closed
+    if: github.event.action != 'closed'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install en_US.UTF-8 locale
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y locales
+          sudo locale-gen en_US.UTF-8
+          sudo update-locale LANG=en_US.UTF-8
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: 'us-east-1'
+
+      - name: Set up environment variables
+        run: |
+          echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
+          echo "ENV_NAME=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
+          echo "BUCKET_NAME=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
+          echo "SUBDOMAIN=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
+          echo "DOMAIN=cloud-instances.info" >> $GITHUB_ENV
+
+      - name: Setup Python for building the site
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-dev libxml2-dev libxslt1-dev libssl-dev
+          python -m pip install --upgrade pip
+          python3 -m venv env
+          source env/bin/activate
+          pip install -r requirements.txt
+
+      - name: Build site
+        run: |
+          source env/bin/activate
+          invoke build
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'
+
+      - name: Initialize Terraform
+        working-directory: infra/terraform/cloudflare_environment
+        run: |
+          terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
+          terraform workspace new pr-${{ github.event.number }} || terraform workspace select  pr-${{ github.event.number }}
+
+      - name: Check if environment already exists and redirects
+        id: check_redirect
+        run: |
+          WEBSITE_URL="https://${{ env.SUBDOMAIN }}.${{ env.DOMAIN }}"
+          echo "Checking if $WEBSITE_URL exists and redirects from / to /index.html"
+
+          # Check if the URL exists and if it redirects
+          REDIRECT_CHECK=$(curl -s -o /dev/null -w "%{http_code}\n%{redirect_url}\n" "$WEBSITE_URL" || echo "Error")
+
+          HTTP_CODE=$(echo "$REDIRECT_CHECK" | head -n 1)
+          REDIRECT_URL=$(echo "$REDIRECT_CHECK" | tail -n 1)
+
+          echo "HTTP Code: $HTTP_CODE"
+          echo "Redirect URL: $REDIRECT_URL"
+
+          # Set the output based on the check
+          if [[ "$HTTP_CODE" == "30"* && "$REDIRECT_URL" == *"/index.html" ]]; then
+            echo "SKIP_APPLY=true" >> $GITHUB_ENV
+            echo "WEBSITE_URL=$WEBSITE_URL" >> $GITHUB_ENV
+            echo "Environment already exists and redirects correctly"
+          else
+            echo "SKIP_APPLY=false" >> $GITHUB_ENV
+            echo "Environment doesn't exist or doesn't redirect correctly"
+          fi
+
+      - name: Terraform apply
+        working-directory: infra/terraform/cloudflare_environment
+        id: apply
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        if: env.SKIP_APPLY != 'true'
+        run: |
+          terraform apply -auto-approve \
+            -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" \
+            -var="bucket_name=${{ env.BUCKET_NAME }}" \
+            -var="domain_name=cloud-instances.info" \
+            -var="subdomain=${{ env.SUBDOMAIN }}" \
+            -var="bucket_location=weur"
+          # Save the terraform output to use in subsequent steps
+          terraform output -json > tf_output.json
+          echo "WEBSITE_URL=$(cat tf_output.json | jq -r '.website_url.value')" >> $GITHUB_ENV
+
+      - name: Use existing website URL if skipped apply
+        if: env.SKIP_APPLY == 'true'
+        run: |
+          echo "Using existing website URL: ${{ env.WEBSITE_URL }}"
+
+      - name: Deploy
+        env:
+          # Common configuration
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          source env/bin/activate
+          invoke deploy
+
+      - name: Add PR comment with preview URL
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Preview environment ${process.env.SKIP_APPLY === 'true' ? 'already exists' : 'deployed successfully'}!\n\n🔗 [Preview URL](${{ env.WEBSITE_URL }})\n\nEnvironment will be destroyed when the PR is closed.`
+            })
+
+  teardown-environment:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.3
+
+      - name: Set environment variables
+        run: |
+          echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
+          echo "ENV_NAME=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
+          echo "BUCKET_NAME=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
+          echo "SUBDOMAIN=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
+
+      - name: Initialize Terraform
+        working-directory: infra/terraform/cloudflare_environment
+        run: |
+          terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
+          terraform workspace select pr-${{ github.event.number }}
+
+      - name: Destroy PR environment
+        working-directory: infra/terraform/cloudflare_environment
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "Tearing down environment for pull request ${{ github.event.number }}"
+          terraform destroy -auto-approve \
+            -var="cloudflare_account_id=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var="cloudflare_zone_id=${{ secrets.CLOUDFLARE_ZONE_ID }}" \
+            -var="bucket_name=${{ env.BUCKET_NAME }}" \
+            -var="domain_name=cloud-instances.info" \
+            -var="subdomain=${{ env.SUBDOMAIN }}" \
+            -var="bucket_location=weur"
+
+      - name: Add PR comment about environment destruction
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🧹 Preview environment has been successfully destroyed.`
+            })

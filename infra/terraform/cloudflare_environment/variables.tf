@@ -1,11 +1,3 @@
-
-
-variable "cloudflare_deployment_api_token" {
-  description = "Cloudflare API token with permission needed for deployment orchestration"
-  type        = string
-  sensitive   = true
-}
-
 variable "cloudflare_account_id" {
   description = "Cloudflare account ID"
   type        = string
@@ -24,7 +16,7 @@ variable "bucket_name" {
 variable "bucket_location" {
   description = "Location hint for the R2 bucket (e.g., weur for Western Europe)"
   type        = string
-  default     = "auto"
+  default     = "weur"
 }
 
 variable "domain_name" {
@@ -38,7 +30,6 @@ variable "subdomain" {
   default     = "@"
 }
 
-
 variable "worker_compatibility_date" {
   description = "Compatibility date for the Cloudflare Worker"
   type        = string
@@ -50,3 +41,4 @@ variable "worker_environment" {
   type        = string
   default     = "production"
 }
+

@@ -12,12 +12,9 @@ terraform {
 }
 
 # Main provider configuration (version 5.4.0)
-provider "cloudflare" {
-  api_token = var.cloudflare_deployment_api_token
-}
+provider "cloudflare" {}
 
 # Additional provider configuration for version 5.1.0 with alias
 provider "cloudflare" {
   alias     = "v5_1_0"
-  api_token = var.cloudflare_deployment_api_token
 }
