@@ -180,6 +180,16 @@ jobs:
           terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
           terraform workspace select pr-${{ github.event.number }}
 
+      - name: Empty and delete the bucket
+        env:
+          # Common configuration
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          source env/bin/activate
+          invoke bucket_delete
+
       - name: Destroy PR environment
         working-directory: infra/terraform/cloudflare_environment
         env:
