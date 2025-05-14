@@ -46,7 +46,7 @@ jobs:
           echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
           echo "ENV_NAME=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
           echo "BUCKET_NAME=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
-          echo "SUBDOMAIN=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
+          echo "SUBDOMAIN=pull-request-${{ github.event.number }}" >> $GITHUB_ENV
           echo "DOMAIN=cloud-instances.info" >> $GITHUB_ENV
 
       - name: Setup Python for building the site
@@ -166,8 +166,14 @@ jobs:
           echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
           echo "ENV_NAME=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
           echo "BUCKET_NAME=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
-          echo "SUBDOMAIN=cloud-instances-info-pull-request-${{ github.event.number }}" >> $GITHUB_ENV
+          echo "SUBDOMAIN=pull-request-${{ github.event.number }}" >> $GITHUB_ENV
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: 'us-east-1'
       - name: Initialize Terraform
         working-directory: infra/terraform/cloudflare_environment
         run: |
