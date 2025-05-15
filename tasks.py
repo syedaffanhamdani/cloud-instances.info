@@ -205,7 +205,7 @@ def bucket_delete(c):
         extra_args_base = {}
     else:
         # Using AWS S3
-        print(f"Deleting AWS S3 bucket {BUCKET_NAME}"
+        print(f"Deleting AWS S3 bucket {BUCKET_NAME}")
         s3 = boto3.client("s3")
 
     bucket = s3.Bucket(BUCKET_NAME)
