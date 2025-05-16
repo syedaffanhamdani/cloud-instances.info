@@ -184,7 +184,30 @@ def bucket_delete(c):
         print("Aborting at user request.")
         exit(1)
 
-    s3 = boto3.resource("s3")
+    # Get bucket name from environment variable or use default
+    BUCKET_NAME = os.environ.get("BUCKET_NAME", "www.ec2instances.info")
+
+    # Determine if we're using R2 or S3 based on environment variables
+    if os.environ.get("R2_ACCOUNT_ID"):
+        # Using R2
+        print(f"Deleting Cloudflare R2 bucket {BUCKET_NAME}")
+        endpoint_url = (
+            f"https://{os.environ.get('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+        )
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"),
+            region_name="auto",
+        )
+        # R2 doesn't support ACL
+        extra_args_base = {}
+    else:
+        # Using AWS S3
+        print(f"Deleting AWS S3 bucket {BUCKET_NAME}")
+        s3 = boto3.client("s3")
+
     bucket = s3.Bucket(BUCKET_NAME)
 
     # Delete all objects in the bucket first
