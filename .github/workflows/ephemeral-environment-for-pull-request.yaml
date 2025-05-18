@@ -202,7 +202,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           source env/bin/activate
-          invoke bucket_delete
+          invoke bucket-delete
 
       - name: Destroy PR environment
         working-directory: infra/terraform/cloudflare_environment
