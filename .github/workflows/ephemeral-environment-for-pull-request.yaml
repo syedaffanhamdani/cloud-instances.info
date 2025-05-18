@@ -149,6 +149,7 @@ jobs:
             })
 
   teardown-environment:
+    needs: [setup-environment]
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
 
