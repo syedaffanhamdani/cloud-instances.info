@@ -136,6 +136,20 @@ deactivate # to exit virtualenv
 - [Mako](http://www.makotemplates.org/)
 - [lxml](http://lxml.de/)
 
+## Local cache
+
+Build command accepts a flag --refresh-data which will force fetch latest pricing data from AWS
+
+Usage
+```bash
+invoke build --refresh-data
+```
+Behavior: Data is refreshed if
+- flag is set
+  OR
+- no local data exists
+
+
 ## Tips for Developing Locally
 
 ```

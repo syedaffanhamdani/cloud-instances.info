@@ -37,20 +37,23 @@ HTTP_PORT = os.getenv("HTTP_PORT", "8080")
 
 
 @task
-def build(c):
+def build(c, refresh_data=False):
     """Scrape AWS sources for data and build the site"""
-    scrape_ec2(c)
-    scrape_rds(c)
-    scrape_cache(c)
-    scrape_redshift(c)
-    scrape_opensearch(c)
+    scrape_ec2(c, refresh_data)
+    scrape_rds(c, refresh_data)
+    scrape_cache(c, refresh_data)
+    scrape_redshift(c, refresh_data)
+    scrape_opensearch(c, refresh_data)
     render_html(c)
 
 
 @task
-def scrape_ec2(c):
+def scrape_ec2(c, refresh_data):
     """Scrape EC2 data from AWS and save to local file"""
     ec2_file = "www/instances.json"
+    if not refresh_data and os.path.exists(ec2_file):
+        print(f"Using existing EC2 data from {ec2_file}")
+        return
     try:
         scrape(ec2_file)
     except Exception as e:
@@ -59,9 +62,12 @@ def scrape_ec2(c):
 
 
 @task
-def scrape_rds(c):
+def scrape_rds(c, refresh_data):
     """Scrape RDS data from AWS and save to local file"""
     rds_file = "www/rds/instances.json"
+    if not refresh_data and os.path.exists(rds_file):
+        print(f"Using existing RDS data from {rds_file}")
+        return
     try:
         rds_scrape(rds_file)
     except Exception as e:
@@ -70,9 +76,12 @@ def scrape_rds(c):
 
 
 @task
-def scrape_cache(c):
+def scrape_cache(c, refresh_data):
     """Scrape Cache instance data from AWS and save to local file"""
     cache_file = "www/cache/instances.json"
+    if not refresh_data and os.path.exists(cache_file):
+        print(f"Using existing Cache data from {cache_file}")
+        return
     try:
         cache_scrape(cache_file)
     except Exception as e:
@@ -81,9 +90,12 @@ def scrape_cache(c):
 
 
 @task
-def scrape_redshift(c):
+def scrape_redshift(c, refresh_data):
     """Scrape Redshift instance data from AWS and save to local file"""
     redshift_file = "www/redshift/instances.json"
+    if not refresh_data and os.path.exists(redshift_file):
+        print(f"Using existing redshift data from {redshift_file}")
+        return
     try:
         redshift_scrape(redshift_file)
     except Exception as e:
@@ -92,9 +104,12 @@ def scrape_redshift(c):
 
 
 @task
-def scrape_opensearch(c):
+def scrape_opensearch(c, refresh_data):
     """Scrape OpenSearch instance data from AWS and save to local file"""
     opensearch_file = "www/opensearch/instances.json"
+    if not refresh_data and os.path.exists(opensearch_file):
+        print(f"Using existing OpenSearch data from {opensearch_file}")
+        return
     try:
         opensearch_scrape(opensearch_file)
     except Exception as e:
