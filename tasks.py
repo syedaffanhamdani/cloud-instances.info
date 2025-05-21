@@ -6,7 +6,6 @@
 import os
 import traceback
 import mimetypes
-from pathlib import Path
 
 import boto3
 from invoke import task
@@ -21,10 +20,6 @@ from render import render
 from render import build_sitemap
 from render import about_page
 from scrape import scrape
-
-from io import BytesIO
-import gzip
-import shutil
 
 BUCKET_NAME = "www.ec2instances.info"
 
