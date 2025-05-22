@@ -66,7 +66,7 @@ def build(c, refresh_data=False):
     """Scrape AWS sources for data and build the site"""
     scrape_ec2(c, refresh_data)
     scrape_rds(c, refresh_data)
-    scrape_cache(c, refresh_data)
+    scrape_elasticache(c, refresh_data)
     scrape_redshift(c, refresh_data)
     scrape_opensearch(c, refresh_data)
     render_html(c)
@@ -111,7 +111,7 @@ def scrape_rds(c, refresh_data):
 
 
 @task
-def scrape_cache(c, refresh_data):
+def scrape_elasticache(c, refresh_data):
     """Scrape Cache instance data from AWS and save to local file"""
     elasticache_file = "cache/instances.json"
     if not refresh_data:
@@ -123,7 +123,7 @@ def scrape_cache(c, refresh_data):
             return
 
     try:
-        cache_scrape(cache_file)
+        cache_scrape(elasticache_file)
     except Exception as e:
         print("ERROR: Unable to scrape Cache data")
         print(traceback.print_exc())
