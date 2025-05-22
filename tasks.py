@@ -35,7 +35,7 @@ abspath = lambda filename: os.path.join(
 
 HTTP_HOST = os.getenv("HTTP_HOST", "127.0.0.1")
 HTTP_PORT = os.getenv("HTTP_PORT", "8080")
-REMOTE_WEBSITE_DATA_PREFIX = "https://cloud-instances.info"
+REMOTE_WEBSITE_DATA_PREFIX = os.getenv("REMOTE_WEBSITE_DATA_PREFIX","https://cloud-instances.info")
 
 def fetch_from_website_and_write_to_file(file_path):
     remote_url = f"{REMOTE_WEBSITE_DATA_PREFIX}/{file_path}"
@@ -113,9 +113,9 @@ def scrape_rds(c, refresh_data):
 @task
 def scrape_cache(c, refresh_data):
     """Scrape Cache instance data from AWS and save to local file"""
-    elasti_cache_file = "cache/instances.json"
+    elasticache_file = "cache/instances.json"
     if not refresh_data:
-        result = fetch_from_website_and_write_to_file(elasti_cache_file)
+        result = fetch_from_website_and_write_to_file(elasticache_file)
         if result is None:
             print("Unable to fetch data, proceed to scrap")
         else:
