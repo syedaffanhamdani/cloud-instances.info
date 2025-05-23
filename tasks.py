@@ -32,9 +32,11 @@ HTTP_HOST = os.getenv("HTTP_HOST", "127.0.0.1")
 HTTP_PORT = os.getenv("HTTP_PORT", "8080")
 REMOTE_WEBSITE_DATA_PREFIX = os.getenv("REMOTE_WEBSITE_DATA_PREFIX","https://cloud-instances.info")
 
+local_file_base_path = "www"
+
 def fetch_from_website_and_write_to_file(file_path):
     remote_url = f"{REMOTE_WEBSITE_DATA_PREFIX}/{file_path}"
-    file_path = f"www/{file_path}"
+    file_path = f"{local_file_base_path}/{file_path}"
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     try:
         response = requests.get(remote_url)
@@ -80,7 +82,7 @@ def scrape_ec2(c, refresh_data):
             return
 
     try:
-        scrape(ec2_file)
+        scrape(f"{local_file_base_path}/{ec2_file})
     except Exception as e:
         print("ERROR: Unable to scrape EC2 data")
         print(traceback.print_exc())
@@ -99,7 +101,7 @@ def scrape_rds(c, refresh_data):
             return
 
     try:
-        rds_scrape(rds_file)
+        rds_scrape(f"{local_file_base_path}/{rds_file})
     except Exception as e:
         print("ERROR: Unable to scrape RDS data")
         print(traceback.print_exc())
@@ -118,7 +120,7 @@ def scrape_elasticache(c, refresh_data):
             return
 
     try:
-        cache_scrape(elasticache_file)
+        cache_scrape(f"{local_file_base_path}/{elasticache_file}")
     except Exception as e:
         print("ERROR: Unable to scrape Cache data")
         print(traceback.print_exc())
@@ -137,7 +139,7 @@ def scrape_redshift(c, refresh_data):
             return
 
     try:
-        redshift_scrape(redshift_file)
+        redshift_scrape(f"{local_file_base_path}/{redshift_file}")
     except Exception as e:
         print("ERROR: Unable to scrape Redshift data")
         print(traceback.print_exc())
@@ -155,7 +157,7 @@ def scrape_opensearch(c, refresh_data):
             # data is fetched from website, no need to scrap aws
             return
     try:
-        opensearch_scrape(opensearch_file)
+        opensearch_scrape(f"{local_file_base_path}/{opensearch_file}")
     except Exception as e:
         print("ERROR: Unable to scrape OpenSearch data")
         print(traceback.print_exc())
