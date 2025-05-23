@@ -145,8 +145,8 @@ Usage
 ```bash
 invoke build --refresh-data
 ```
-A normal build i.e. `invoke build` fetches the latest published pricing data from cloud-instances.info for the local website build.
 
+A normal build i.e. `invoke build` fetches the latest published pricing data from cloud-instances.info for the local website build.
 
 ## Tips for Developing Locally
 
